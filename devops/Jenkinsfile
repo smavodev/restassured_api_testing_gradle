@@ -46,16 +46,22 @@ pipeline {
   post {
           always {
 
-                // Reporte HTML RICO generado por maven-cucumber-reporting (si se ejecuta)
-                archiveArtifacts artifacts: 'target/cucumber-reports/cucumber-html-reports/**/*', allowEmptyArchive: true
+                // Archivar reporte HTML de JUnit
+                archiveArtifacts artifacts: 'build/reports/tests', allowEmptyArchive: true, fingerprint: true
+
+//                 // Archivar ZIP (opcional)
+//                 archiveArtifacts artifacts: 'test-report.zip', allowEmptyArchive: true, fingerprint: true
+//
+//                 // Publicar resultados de pruebas (para gráficos de tendencia en Jenkins)
+//                 junit testResults: 'build/test-results/test/TEST-*.xml', allowEmptyResults: true
 
                 // Notificar siempre en Slack
                 script {
-                  slackSend(
-                      channel: SLACK_CHANNEL_GENERAL,
-                      color: 'warning',
-                      message: ":bell: *$JOB_NAME* - #${BUILD_NUMBER} - El job ha finalizado con estado: *${currentBuild.currentResult}*."
-                  )
+                    slackSend(
+                        channel: SLACK_CHANNEL_GENERAL,
+                        color: 'warning',
+                        message: ":bell: *$JOB_NAME* - #${BUILD_NUMBER} - El job ha finalizado con estado: *${currentBuild.currentResult}*."
+                    )
               }
           }
 
