@@ -1,0 +1,141 @@
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '4', daysToKeepStr: '2'))
+    }
+
+    environment {
+        // Define tus credenciales de Git
+        GIT_CREDENTIALS = 'credentials_token_smavodev'
+        GIT_REPOSITORY = 'https://github.com/smavodev/restassured_api_testing_gradle.git'
+        SLACK_CHANNEL = '#ci_jenkins'
+        SLACK_CHANNEL_GENERAL = '#general'
+    }
+
+//     triggers {
+//         // Verifica cambios en el SCM cada 5 minutos
+//         pollSCM('* * * * *')
+//     }
+
+    stages {
+        stage ('Clean WorkSpace Directory') {
+           steps {
+                cleanWs notFailBuild: true
+                echo '🧹 Limpiando el Workspace'
+           }
+        }
+
+        stage ('Clonar Repositorio') {
+            steps {
+                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: GIT_CREDENTIALS, url: GIT_REPOSITORY]])
+                echo '✅ Repositorio Clonado'
+            }
+        }
+
+        stage ('Ejecución de Test') {
+            steps {
+                bat "gradlew.bat test --tests \"basicJunit.BasicJunit\" --info"
+
+                echo "🚀 Ejecucion de test en el ambiente de QA"
+            }
+        }
+
+    }
+
+  post {
+          always {
+
+                // Archivar reporte HTML de JUnit
+                archiveArtifacts artifacts: 'build/reports/tests', allowEmptyArchive: true, fingerprint: true
+
+//                 // Archivar ZIP (opcional)
+//                 archiveArtifacts artifacts: 'test-report.zip', allowEmptyArchive: true, fingerprint: true
+//
+//                 // Publicar resultados de pruebas (para gráficos de tendencia en Jenkins)
+//                 junit testResults: 'build/test-results/test/TEST-*.xml', allowEmptyResults: true
+
+                // Notificar siempre en Slack
+                script {
+                    slackSend(
+                        channel: SLACK_CHANNEL_GENERAL,
+                        color: 'warning',
+                        message: ":bell: *$JOB_NAME* - #${BUILD_NUMBER} - El job ha finalizado con estado: *${currentBuild.currentResult}*."
+                    )
+              }
+          }
+
+          success {
+              script {
+                  // Notificar éxito en Slack con enlace a la ejecución
+                  slackSend(
+                      channel: SLACK_CHANNEL,
+                      color: 'good',
+                      message: "$JOB_NAME - #${BUILD_NUMBER} - ¡Despliegue exitoso!. Ver detalles <$BUILD_URL|(Aqui)> ."
+                  )
+              }
+          }
+
+          failure {
+              script {
+                  // Notificar fallo en Slack con enlace a la ejecución
+                  slackSend(
+                      channel: SLACK_CHANNEL,
+                      color: 'danger',
+                      message: "$JOB_NAME - #${BUILD_NUMBER} - ¡Fallo en el despliegue! Revisar los registros para obtener más detalles. Ver detalles <$BUILD_URL|(Aqui)> ."
+                  )
+              }
+          }
+
+          fixed {
+              script {
+                  // Notificar recuperación en Slack con enlace a la ejecución
+                  slackSend(
+                      channel: SLACK_CHANNEL,
+                      color: 'good',
+                      message: "$JOB_NAME - #${BUILD_NUMBER} - ¡Recuperación! Despliegue exitoso nuevamente. Ver detalles <$BUILD_URL|(Aqui)> ."
+                  )
+              }
+          }
+
+          aborted {
+              slackSend(
+                  channel: SLACK_CHANNEL,
+                  color: 'danger',
+                  message: ":no_entry_sign: *$JOB_NAME* - #${BUILD_NUMBER} - ¡El job fue abortado manualmente! :construction:"
+              )
+          }
+
+          unstable {
+              script {
+                  slackSend(
+                      channel: SLACK_CHANNEL,
+                      color: 'warning',
+                      message: ":warning: *$JOB_NAME* - #${BUILD_NUMBER} - ¡El job terminó en estado inestable! Revisar los registros para obtener más detalles. Ver detalles <$BUILD_URL|(Aqui)>."
+                  )
+              }
+          }
+
+          regression {
+              script {
+                  slackSend(
+                      channel: SLACK_CHANNEL,
+                      color: 'danger',
+                      message: ":rotating_light: *$JOB_NAME* - #${BUILD_NUMBER} - ¡Regresión detectada! El job pasó de éxito a fallo. Revisar los registros para obtener más detalles. Ver detalles <$BUILD_URL|(Aqui)>."
+                  )
+              }
+          }
+
+          notBuilt {
+              script {
+                  slackSend(
+                      channel: SLACK_CHANNEL,
+                      color: 'warning',
+                      message: ":grey_exclamation: *$JOB_NAME* - #${BUILD_NUMBER} - El job no fue construido. Ver detalles <$BUILD_URL|(Aqui)>."
+                  )
+              }
+          }
+
+  }
+
+}
