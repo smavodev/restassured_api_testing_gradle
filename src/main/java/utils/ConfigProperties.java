@@ -2,7 +2,6 @@ package utils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputFilter;
 import java.util.Properties;
 
 public class ConfigProperties {

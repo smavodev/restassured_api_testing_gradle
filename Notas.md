@@ -26,6 +26,9 @@ gradlew.bat clean test --tests "basicJunit.BasicJunit.verifySometing"
 
 # Forzar re-ejecución (ignorar caché):
 gradlew.bat test --tests "basicJunit.BasicJunit" --rerun-tasks
+
+# Usar variables de ambiente en los test
+gradle.bat test -Denvironment=qa --tests "basicRestAssured.CreateItemTestProperties" --info
 ```
 
 ### Linux / MacOs
