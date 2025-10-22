@@ -4,8 +4,10 @@ import io.restassured.response.Response;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import utils.Credentials;
+import utils.JsonSchemaUtils;
 
 import static io.restassured.RestAssured.given;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.hamcrest.Matchers.equalTo;
 
 public class CreateItemTestSecrets {
@@ -35,6 +37,7 @@ public class CreateItemTestSecrets {
         createResponse.then()
                 .log().all()
                 .statusCode(200)
+                .body(matchesJsonSchemaInClasspath("expectedJsonSchemaCreateItems.json").using(JsonSchemaUtils.draftV4SchemaFactory()))
                 .body("Content", equalTo("Item A1"))
                 .body("Deleted", equalTo(false));
 
